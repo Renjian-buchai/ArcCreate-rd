@@ -1,5 +1,5 @@
-# CC=g++ 
-CC=clang++
+CC=g++ 
+# CC=clang++
 CCFLAGS=-Wall -Wextra -Wold-style-cast -Werror -fexec-charset=utf-8
 # -Weffc++
 INC=
