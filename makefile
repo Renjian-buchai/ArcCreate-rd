@@ -3,7 +3,7 @@ CC=g++
 CCFLAGS=-Wall -Wextra -Wold-style-cast -Werror -fexec-charset=utf-8
 # -Weffc++
 INC=
-LIN=-lz -lzip
+LIN=
 DEF=
 STD=-std=c++17
 
