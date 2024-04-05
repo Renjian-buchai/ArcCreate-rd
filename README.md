@@ -3,3 +3,4 @@
 ## Dependencies
 
 - 7zip
+- sqlite3
