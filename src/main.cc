@@ -1,10 +1,15 @@
 #include <sqlite3.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
+
+using lines = std::vector<std::string>;
 
 std::string unext(std::string str) {
   size_t value = str.find_last_of('.');
@@ -12,6 +17,30 @@ std::string unext(std::string str) {
     return str;
   }
   return str.substr(0, value);
+}
+
+inline void rtriml(std::string& in) {
+  in.erase(in.begin(), std::find_if(in.begin(), in.end(), [](unsigned char ch) {
+             return !std::isspace(ch);
+           }));
+}
+
+inline void rtrimr(std::string& in) {
+  in.erase(std::find_if(in.rbegin(), in.rend(),
+                        [](unsigned char ch) { return !std::isspace(ch); })
+               .base(),
+           in.end());
+}
+
+inline void rtrim(std::string& in) {
+  in.erase(std::find_if(in.rbegin(), in.rend(),
+                        [](unsigned char ch) { return !std::isspace(ch); })
+               .base(),
+           in.end());
+
+  in.erase(in.begin(), std::find_if(in.begin(), in.end(), [](unsigned char ch) {
+             return !std::isspace(ch);
+           }));
 }
 
 int main(int argc, const char** argv, const char** envp) {
@@ -25,9 +54,21 @@ int main(int argc, const char** argv, const char** envp) {
   }
 
   sqlite3_exec(database,
-               "create table if not exists charts ("
-               "index integer primary key,"
-               ""  // TODO complete
+               "CREATE TABLE IF NOT EXISTS   charts ("
+               "  index INTEGER PRIMARY KEY NOT NULL,"
+               "  identifier TEXT NOT NULL"
+               "  title TEXT NOT NULL,"
+               "  composer TEXT NOT NULL,"
+               "  charter TEXT NOT NULL,"
+               "  alias TEXT,"
+               "  illustrator TEXT,"
+               "  chartConstant REAL NOT NULL,"
+               "  difficulty TEXT,"
+               "  displayedConstant TEXT,"
+               "  baseBPM INTEGER NOT NULL,"
+               "  bpmText TEXT,"
+               "  side TEXT NOT NULL,"
+               "  searchTags TEXT"
                ");",
                nullptr, nullptr, &errmsg);
 
@@ -42,17 +83,33 @@ int main(int argc, const char** argv, const char** envp) {
       std::filesystem::current_path() / "tmp" /
       std::filesystem::path(unext(std::string(argv[1])));
 
-  std::string data;
+  std::vector<lines> pack;
 
   {
     std::ifstream index(working / "index.yml");
 
     std::string buffer;
-    while (std::getline(index, buffer)) {
-      data += buffer;
+    std::stringstream bufferStream;
+    lines configLines;
+    while (std::getline(index, buffer, '-')) {
+      configLines = {};
+      bufferStream = std::stringstream(buffer);
+      while (std::getline(bufferStream, buffer)) {
+        rtrim(buffer);
+        configLines.push_back(buffer);
+      }
+      pack.push_back(configLines);
     }
 
+    pack.erase(pack.begin());
+
     index.close();
+  }
+
+  for (lines chart : pack) {
+    for (std::string config : chart) {
+      std::cout << config << "\n";
+    }
   }
 
   return 0;
