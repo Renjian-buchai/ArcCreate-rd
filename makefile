@@ -7,7 +7,7 @@ LIN=-lsqlite3
 DEF=
 STD=-std=c++17
 
-src=src/main.cc 
+src=src/main.cc src/chart.cc
 exe=test.exe
 prexe=a.exe
 
