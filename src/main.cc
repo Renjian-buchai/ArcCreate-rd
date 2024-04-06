@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "../include/chart.hh"
+
 using lines = std::vector<std::string>;
 
 std::string unext(std::string str) {
@@ -17,19 +19,6 @@ std::string unext(std::string str) {
     return str;
   }
   return str.substr(0, value);
-}
-
-inline void rtriml(std::string& in) {
-  in.erase(in.begin(), std::find_if(in.begin(), in.end(), [](unsigned char ch) {
-             return !std::isspace(ch);
-           }));
-}
-
-inline void rtrimr(std::string& in) {
-  in.erase(std::find_if(in.rbegin(), in.rend(),
-                        [](unsigned char ch) { return !std::isspace(ch); })
-               .base(),
-           in.end());
 }
 
 inline void rtrim(std::string& in) {
@@ -67,8 +56,9 @@ int main(int argc, const char** argv, const char** envp) {
                "  displayedConstant TEXT,"
                "  baseBPM INTEGER NOT NULL,"
                "  bpmText TEXT,"
-               "  side TEXT NOT NULL,"
+               "  side INTEGER NOT NULL,"
                "  searchTags TEXT"
+               "  pack TEXT"
                ");",
                nullptr, nullptr, &errmsg);
 
@@ -106,7 +96,7 @@ int main(int argc, const char** argv, const char** envp) {
     index.close();
   }
 
-  for (lines chart : pack) {
+    for (lines chart : pack) {
     for (std::string config : chart) {
       std::cout << config << "\n";
     }
