@@ -1,3 +1,4 @@
+
 #include <sqlite3.h>
 
 #include <algorithm>
@@ -62,30 +63,31 @@ int main(int argc, const char** argv, const char** envp) {
                "  title TEXT NOT NULL,\n"
                "  composer TEXT NOT NULL,\n"
                "  charter TEXT NOT NULL,\n"
-               "  alias TEXT,\n"
-               "  illustrator TEXT,\n"
+               "  alias TEXT DEFAULT \"\",\n"
+               "  illustrator TEXT DEFAULT \"\",\n"
                "  chartConstant REAL NOT NULL,\n"
-               "  difficulty TEXT,\n"
-               "  displayedConstant TEXT,\n"
+               "  difficulty TEXT DEFAULT \"\",\n"
+               "  displayedConstant TEXT DEFAULT \"\",\n"
                "  baseBPM INTEGER NOT NULL,\n"
-               "  bpmText TEXT,\n"
+               "  bpmText TEXT DEFAULt \"\",\n"
                "  side INTEGER NOT NULL,\n"
-               "  searchTags TEXT pack TEXT\n"
+               "  searchTags TEXT DEFAULT \"\","
+               "  pack TEXT DEFAULT \"\"\n"
                ");",
                nullptr, nullptr, &errmsg);
 
   if (errmsg) {
     std::cout << errmsg;
+    return 1;
   }
 
-  // // Cancer
-  // if (int err = system((u8"7z x " + std::string(argv[1]) + " -otmp/" +
-  //                       unext(std::string(argv[1])) + " -y -bb0 >
-  //                       tmp/del.txt")
-  //                          .c_str())) {
-  //   std::cerr << "Unable to extract file.";
-  //   return err;
-  // }
+  // Cancer
+  if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
+                        unext(std::string(argv[1])) + " -y -bb0 > tmp/del.txt")
+                           .c_str())) {
+    std::cerr << "Unable to extract file.";
+    return err;
+  }
 
   std::filesystem::path working =
       std::filesystem::current_path() / "tmp" /
@@ -96,8 +98,8 @@ int main(int argc, const char** argv, const char** envp) {
   {
     std::ifstream index(working / "index.yml");
 
-    std::string buffer;
     std::stringstream bufferStream;
+    std::string buffer;
     lines configLines;
     while (std::getline(index, buffer, '-')) {
       configLines = {};
@@ -151,8 +153,55 @@ int main(int argc, const char** argv, const char** envp) {
     }
   }
 
+  std::vector<std::vector<lines>> chartConfigs;
+
+  {
+    std::vector<lines> configs{};
+    std::ifstream projectSettings;
+    std::string buffer;
+    lines configLines;
+    std::stringstream bufferStream;
+    for (size_t i = 0; i < charts.size(); ++i) {
+      projectSettings.open(working / directories[i] / settingsFile[i]);
+
+      while (std::getline(projectSettings, buffer, '-')) {
+        configLines = {};
+        bufferStream = std::stringstream(buffer);
+        while (std::getline(bufferStream, buffer, '\n')) {
+          rtrim(buffer);
+          configLines.push_back(buffer);
+        }
+        configs.push_back(configLines);
+      }
+
+      chartConfigs.push_back(configs);
+
+      configs.erase(configs.begin());
+
+      projectSettings.close();
+    }
+  }
+
   for (apkg::chart& chart : charts) {
     std::cout << chart.identifier << "\n" << chart.pack;
+    sqlite3_exec(database,
+                 ("INSERT INTO main.charts ("
+                  "  identifier,"
+                  "  title,"
+                  "  composer,"
+                  "  charter,"
+                  "  chartConstant,"
+                  "  baseBPM,"
+                  "  side"
+                  ") VALUES ("
+                  "  \"" +
+                  chart.identifier + "\", \"\", \"\", \"\", 0, 1, 0) ")
+                     .c_str(),
+                 nullptr, nullptr, &errmsg);
+    if (errmsg) {
+      std::cerr << errmsg;
+      return 1;
+    }
   }
 
 #if 0
@@ -164,6 +213,8 @@ int main(int argc, const char** argv, const char** envp) {
   }
 
 #endif
+
+  sqlite3_close_v2(database);
 
   return 0;
 }
