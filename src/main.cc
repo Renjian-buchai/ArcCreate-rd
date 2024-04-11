@@ -76,6 +76,36 @@ int main(int argc, const char** argv, const char** envp) {
   std::vector<std::vector<lines>> chartConfigs;
 
   {
+    std::ifstream projectSettings;
+    std::string buffer;
+    std::string projectYaml;
+    lines configLines;
+
+    size_t idx;
+
+    for (size_t i = 0; i < charts.size(); ++i) {
+      configLines = {};
+      projectYaml = "";
+
+      projectSettings.open(working / directories[i] / settingsFile[i]);
+      while (std::getline(projectSettings, buffer))
+        projectYaml += buffer + "\n";
+      projectSettings.close();
+
+      uint8_t x = 1;
+      while (++x) {
+        idx = projectYaml.find("\n-");
+        if (idx == std::string::npos) {
+          configLines.push_back(projectYaml);
+          break;
+        } else {
+          configLines.push_back(projectYaml.substr(0, idx));
+          projectYaml = std::move(projectYaml.substr(idx + 2));
+        }
+      }
+    }
+
+#if 0 
     std::vector<lines> configs{};
     std::ifstream projectSettings;
     std::string buffer;
@@ -99,6 +129,7 @@ int main(int argc, const char** argv, const char** envp) {
 
       projectSettings.close();
     }
+#endif
   }
 
   // Cancer
