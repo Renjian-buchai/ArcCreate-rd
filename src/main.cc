@@ -11,40 +11,8 @@
 #include <vector>
 
 #include "../include/chart.hh"
-
-using lines = std::vector<std::string>;
-
-std::string unext(std::string str) {
-  size_t value = str.find_last_of('.');
-  if (value == std::string::npos) {
-    return str;
-  }
-  return str.substr(0, value);
-}
-
-inline std::string trim(std::string&& in) {
-  in.erase(std::find_if(in.rbegin(), in.rend(),
-                        [](unsigned char ch) { return !std::isspace(ch); })
-               .base(),
-           in.end());
-
-  in.erase(in.begin(), std::find_if(in.begin(), in.end(), [](unsigned char ch) {
-             return !std::isspace(ch);
-           }));
-
-  return in;
-}
-
-inline void rtrim(std::string& in) {
-  in.erase(std::find_if(in.rbegin(), in.rend(),
-                        [](unsigned char ch) { return !std::isspace(ch); })
-               .base(),
-           in.end());
-
-  in.erase(in.begin(), std::find_if(in.begin(), in.end(), [](unsigned char ch) {
-             return !std::isspace(ch);
-           }));
-}
+#include "../include/index.hh"
+#include "../include/util.hh"
 
 int main(int argc, const char** argv, const char** envp) {
   (void)argc, (void)argv, (void)envp;
@@ -82,77 +50,29 @@ int main(int argc, const char** argv, const char** envp) {
   }
 
   // Cancer
-  if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
-                        unext(std::string(argv[1])) + " -y -bb0 > tmp/del.txt")
-                           .c_str())) {
+  if (int err =
+          system(("7z x " + std::string(argv[1]) + " -otmp/" +
+                  util::unext(std::string(argv[1])) + " -y -bb0 > tmp/del.txt")
+                     .c_str())) {
     std::cerr << "Unable to extract file.";
     return err;
   }
 
   std::filesystem::path working =
       std::filesystem::current_path() / "tmp" /
-      std::filesystem::path(unext(std::string(argv[1])));
+      std::filesystem::path(util::unext(std::string(argv[1])));
 
   std::vector<lines> pack;
-
-  {
-    std::ifstream index(working / "index.yml");
-
-    std::stringstream bufferStream;
-    std::string buffer;
-    lines configLines;
-    while (std::getline(index, buffer, '-')) {
-      configLines = {};
-      bufferStream = std::stringstream(buffer);
-      while (std::getline(bufferStream, buffer)) {
-        rtrim(buffer);
-        configLines.push_back(buffer);
-      }
-      pack.push_back(configLines);
-    }
-
-    pack.erase(pack.begin());
-
-    index.close();
-  }
+  (void)index::read(working, pack);
 
   std::vector<apkg::chart> charts{};
   std::vector<std::string> directories{};
   std::vector<std::string> settingsFile{};
 
-  {
-    std::string packName;
-    size_t packIdx = -1;
-    for (size_t i = 0; i < pack.size(); ++i) {
-      for (std::string& config : pack[i]) {
-        if (config.substr(0, 4) == "type") {
-          if (trim(config.substr(6)) == "pack") {
-            packIdx = charts.size() - 1;
-          }
-        } else if (config.substr(0, 9) == "directory") {
-          directories.push_back(config.substr(11));
-        } else if (config.substr(0, 10) == "identifier") {
-          charts.push_back(apkg::chart(trim(config.substr(12))));
-        } else if (config.substr(0, 12) == "settingsFile") {
-          settingsFile.push_back(config.substr(14));
-        } else if (config.substr(0, 7) == "version") {
-          continue;
-        }
-      }
-    }
+  (void)index::parse(pack, charts, directories, settingsFile);
 
-    if (packIdx != -1ull) {
-      charts.erase(charts.begin() + packIdx);
-      settingsFile.erase(settingsFile.begin() + packIdx);
-
-      for (apkg::chart& chart : charts) {
-        chart.pack = directories[packIdx];
-      }
-
-      directories.erase(directories.begin() + packIdx);
-    }
-  }
-
+  // Configs are grouped into difficulties (lines), then grouped into songs,
+  // which are then grouped into packs.
   std::vector<std::vector<lines>> chartConfigs;
 
   {
@@ -168,20 +88,20 @@ int main(int argc, const char** argv, const char** envp) {
         configLines = {};
         bufferStream = std::stringstream(buffer);
         while (std::getline(bufferStream, buffer, '\n')) {
-          rtrim(buffer);
+          util::rtrim(buffer);
           configLines.push_back(buffer);
         }
         configs.push_back(configLines);
       }
 
-      chartConfigs.push_back(configs);
-
       configs.erase(configs.begin());
+      chartConfigs.push_back(configs);
 
       projectSettings.close();
     }
   }
 
+  // Cancer
   for (apkg::chart& chart : charts) {
     std::cout << chart.identifier << "\n" << chart.pack;
     sqlite3_exec(database,
