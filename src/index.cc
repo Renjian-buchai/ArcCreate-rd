@@ -15,7 +15,7 @@ int index::read(const std::filesystem::path& working,
     configLines = {};
     bufferStream = std::stringstream(buffer);
     while (std::getline(bufferStream, buffer)) {
-      util::rtrim(buffer);
+      apkg::util::rtrim(buffer);
       configLines.push_back(buffer);
     }
     pack.push_back(configLines);
@@ -37,13 +37,13 @@ int index::parse(const std::vector<lines>& pack,
   for (size_t i = 0; i < pack.size(); ++i) {
     for (const std::string& config : pack[i]) {
       if (config.substr(0, 4) == "type") {
-        if (util::trim(config.substr(6)) == "pack") {
+        if (apkg::util::trim(config.substr(6)) == "pack") {
           packIdx = charts.size() - 1;
         }
       } else if (config.substr(0, 9) == "directory") {
         directories.push_back(config.substr(11));
       } else if (config.substr(0, 10) == "identifier") {
-        charts.push_back(apkg::chart(util::trim(config.substr(12))));
+        charts.push_back(apkg::chart(apkg::util::trim(config.substr(12))));
       } else if (config.substr(0, 12) == "settingsFile") {
         settingsFile.push_back(config.substr(14));
       } else if (config.substr(0, 7) == "version") {

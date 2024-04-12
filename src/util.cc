@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-std::string util::unext(std::string str) {
+std::string apkg::util::unext(std::string str) {
   size_t value = str.find_last_of('.');
   if (value == std::string::npos) {
     return str;
@@ -10,7 +10,7 @@ std::string util::unext(std::string str) {
   return str.substr(0, value);
 }
 
-std::string util::trim(std::string&& in) {
+std::string apkg::util::trim(std::string&& in) {
   in.erase(std::find_if(in.rbegin(), in.rend(),
                         [](unsigned char ch) { return !std::isspace(ch); })
                .base(),
@@ -23,7 +23,7 @@ std::string util::trim(std::string&& in) {
   return in;
 }
 
-void util::rtrim(std::string& in) {
+void apkg::util::rtrim(std::string& in) {
   in.erase(std::find_if(in.rbegin(), in.rend(),
                         [](unsigned char ch) { return !std::isspace(ch); })
                .base(),

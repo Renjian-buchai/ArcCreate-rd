@@ -15,8 +15,12 @@ struct chart {
         std::string difficulty = "", std::string displayedConstant = "",
         std::string bpmText = "", std::string searchTags = "",
         std::string pack = "");
+  chart(const chart& copy);
 
-  std::string identifier;
+  // Must exist
+
+  std::string identifier;  // Done by index parsing
+
   std::string title;
   std::string composer;
   std::string charter;
@@ -24,13 +28,18 @@ struct chart {
   long double chartConstant;
   long long baseBPM;
 
+  // Need not exist
+
   std::string alias;
   std::string illustrator;
   std::string difficulty;
   std::string displayedConstant;
   std::string bpmText;
   std::string searchTags;
-  std::string pack;
+
+  std::string pack;  // Done by index parsing
+
+  // Does not exist
 };
 
 }  // namespace apkg

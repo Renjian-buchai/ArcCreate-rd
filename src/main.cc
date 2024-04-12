@@ -32,16 +32,16 @@ int main(int argc, const char** argv, const char** envp) {
                "  title TEXT NOT NULL,\n"
                "  composer TEXT NOT NULL,\n"
                "  charter TEXT NOT NULL,\n"
-               "  alias TEXT DEFAULT \"\",\n"
-               "  illustrator TEXT DEFAULT \"\",\n"
+               "  alias TEXT ,\n"
+               "  illustrator TEXT ,\n"
                "  chartConstant REAL NOT NULL,\n"
-               "  difficulty TEXT DEFAULT \"\",\n"
-               "  displayedConstant TEXT DEFAULT \"\",\n"
+               "  difficulty TEXT ,\n"
+               "  displayedConstant TEXT ,\n"
                "  baseBPM INTEGER NOT NULL,\n"
-               "  bpmText TEXT DEFAULt \"\",\n"
+               "  bpmText TEXT ,\n"
                "  side INTEGER NOT NULL,\n"
-               "  searchTags TEXT DEFAULT \"\","
-               "  pack TEXT DEFAULT \"\"\n"
+               "  searchTags TEXT ,"
+               "  pack TEXT \n"
                ");",
                nullptr, nullptr, &errmsg);
 
@@ -51,17 +51,17 @@ int main(int argc, const char** argv, const char** envp) {
   }
 
   // Cancer
-  if (int err =
-          system(("7z x " + std::string(argv[1]) + " -otmp/" +
-                  util::unext(std::string(argv[1])) + " -y -bb0 > tmp/del.txt")
-                     .c_str())) {
+  if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
+                        apkg::util::unext(std::string(argv[1])) +
+                        " -y -bb0 > tmp/del.txt")
+                           .c_str())) {
     std::cerr << "Unable to extract file.";
     return err;
   }
 
   std::filesystem::path working =
       std::filesystem::current_path() / "tmp" /
-      std::filesystem::path(util::unext(std::string(argv[1])));
+      std::filesystem::path(apkg::util::unext(std::string(argv[1])));
 
   std::vector<lines> pack;
   (void)index::read(working, pack);
@@ -75,7 +75,8 @@ int main(int argc, const char** argv, const char** envp) {
   // Configs are grouped into difficulties (lines), then grouped into songs,
   // which are then grouped into packs.
   std::vector<std::vector<lines>> chartConfigs;
-  (void)project::lex(chartConfigs, working, charts, directories, settingsFile);
+  (void)apkg::project::lex(chartConfigs, working, charts, directories,
+                           settingsFile);
 
   // Cancer
   for (apkg::chart& chart : charts) {
