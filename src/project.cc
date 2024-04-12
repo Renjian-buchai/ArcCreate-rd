@@ -1,9 +1,11 @@
 #include "../include/project.hh"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "../include/chart.hh"
@@ -59,6 +61,121 @@ int apkg::project::lex(std::vector<std::vector<lines>>& chartConfigs,
     }
 
     chartConfigs.push_back(config);
+  }
+
+  return 0;
+}
+
+static int inferConstant(apkg::chart& difficulty, const char (&numbers)[11]) {
+  std::reverse(difficulty.displayedConstant.begin(),
+               difficulty.displayedConstant.end());
+
+  size_t it = std::find_first_of(difficulty.displayedConstant.begin(),
+                                 difficulty.displayedConstant.end(),
+                                 std::begin(numbers), std::end(numbers)) -
+              difficulty.displayedConstant.begin();
+
+  std::reverse(difficulty.displayedConstant.begin(),
+               difficulty.displayedConstant.end());
+
+  try {
+    difficulty.chartConstant = std::stoi(difficulty.displayedConstant.substr(
+        0, difficulty.displayedConstant.size() - it));
+  } catch (const std::invalid_argument& e) {
+    difficulty.chartConstant = -1;
+  }
+  return 0;
+}
+
+// I literally don't know how to make this function smaller
+// Maybe just get better at programming
+// But yes, I agree it's shit style.
+int apkg::project::parse(std::vector<apkg::chart>& difficulties,
+                         const std::vector<std::vector<lines>>& packConfigs,
+                         const std::vector<apkg::chart>& charts) {
+  constexpr const char numbers[11] = "0123456789";
+
+  apkg::chart difficulty("");
+  // Loops over the charts
+  for (size_t i = 0; i < packConfigs.size(); ++i) {
+    std::unordered_map<std::string, uint8_t> skinConfigs;
+    // Loops over the difficulties
+    for (size_t j = 0; j < packConfigs[0].size(); ++j) {
+      difficulty = charts[i];  // Fetches identifier and copies it over.
+      std::string anchor = "";
+
+      // Loops over the configs in that difficulty
+      for (std::string config : packConfigs[i][j]) {
+        if (config.substr(0, 5) == "title") {
+          difficulty.title = config.substr(7);
+        } else if (config.substr(0, 8) == "composer") {
+          difficulty.composer = config.substr(10);
+        } else if (config.substr(0, 7) == "charter") {
+          difficulty.charter = config.substr(9);
+        } else if (config.substr(0, 4) == "skin") {
+          anchor = config.size() < 6 ? "" : apkg::util::trim(config.substr(6));
+        } else if (config.substr(0, 4) == "side") {
+          std::string sstr = config.substr(6);
+          if (sstr == "light") {
+            difficulty.side = 0;
+          } else if (sstr == "conflict") {
+            difficulty.side = 1;
+          } else {
+            difficulty.side = 2;
+          }
+        } else if (config.substr(0, 13) == "chartConstant") {
+          char* e;
+          difficulty.chartConstant =
+              std::strtold(config.substr(15).c_str(), &e);
+
+          if (*e != '\0' or errno != 0) {
+            difficulty.chartConstant = -1;
+          }
+        } else if (config.substr(0, 7) == "baseBpm") {
+          difficulty.baseBPM = std::stoull(config.substr(9));
+        } else if (config.substr(0, 5) == "alias") {
+          difficulty.alias = config.substr(7);
+        } else if (config.substr(0, 11) == "illustrator") {
+          difficulty.illustrator = config.substr(13);
+        } else if (config.substr(0, 11) == "difficulty:") {
+          size_t it =
+              std::find_first_of(config.begin(), config.end(),
+                                 std::begin(numbers), std::end(numbers)) -
+              config.begin();
+          if (it != config.size() and it > 2) {
+            difficulty.difficulty =
+                apkg::util::trim(config.substr(12, it - 12));
+          }
+          difficulty.displayedConstant = config.substr(it);
+        } else if (config.substr(0, 7) == "bpmText") {
+          difficulty.bpmText = config.substr(9);
+        } else if (config.substr(0, 10) == "searchTags") {
+          difficulty.searchTags = config.substr(12);
+        }
+      }
+
+      if (anchor != "") {
+        if (skinConfigs.find(anchor) == skinConfigs.end()) {
+          skinConfigs[anchor] = difficulty.side;
+        } else {
+          difficulty.side = skinConfigs[anchor];
+        }
+      }
+
+      if (difficulty.side == static_cast<uint8_t>(-1)) {
+        if (anchor == "") {
+          difficulty.side = 0;
+        } else {
+          difficulty.side = skinConfigs[anchor];
+        }
+      }
+
+      if (difficulty.chartConstant == -1) {
+        (void)inferConstant(difficulty, numbers);
+      }
+
+      difficulties.push_back(difficulty);
+    }
   }
 
   return 0;

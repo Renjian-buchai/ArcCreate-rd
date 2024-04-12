@@ -14,6 +14,9 @@ int lex(std::vector<std::vector<lines>>& chartConfigs,
         const std::vector<apkg::chart>& charts,
         const std::vector<std::string>& directories,
         const std::vector<std::string>& settingsFile);
+int parse(std::vector<apkg::chart>& difficulties,
+          const std::vector<std::vector<lines>>& packConfigs,
+          const std::vector<apkg::chart>& charts);
 }  // namespace apkg::project
 
 #endif  // APKG_RD_PROJECT

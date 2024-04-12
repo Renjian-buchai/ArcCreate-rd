@@ -35,7 +35,7 @@ int main(int argc, const char** argv, const char** envp) {
                "  charter TEXT NOT NULL,\n"
                "  alias TEXT ,\n"
                "  illustrator TEXT ,\n"
-               "  chartConstant REAL NOT NULL,\n"
+               "  chartConstant INTEGER NOT NULL,\n"
                "  difficulty TEXT ,\n"
                "  displayedConstant TEXT ,\n"
                "  baseBPM INTEGER NOT NULL,\n"
@@ -75,137 +75,41 @@ int main(int argc, const char** argv, const char** envp) {
   std::vector<std::string> settingsFile{};
 
   (void)index::parse(pack, charts, directories, settingsFile);
+  pack.clear();
 
   std::vector<std::vector<lines>> packConfigs;
   (void)apkg::project::lex(packConfigs, working, charts, directories,
                            settingsFile);
+  settingsFile.clear();
+  directories.clear();
+  working.clear();
 
   std::vector<apkg::chart> difficulties;
-
-  {
-    constexpr const char numbers[11] = "0123456789";
-
-    apkg::chart difficulty("");
-    // Loops over the charts
-    for (size_t i = 0; i < packConfigs.size(); ++i) {
-      std::unordered_map<std::string, uint8_t> skinConfigs;
-      // Loops over the difficulties
-      for (size_t j = 0; j < packConfigs[0].size(); ++j) {
-        difficulty = charts[i];  // Fetches identifier and copies it over.
-        std::string anchor = "";
-
-        // Loops over the configs in that difficulty
-        for (std::string config : packConfigs[i][j]) {
-          if (config.substr(0, 5) == "title") {
-            difficulty.title = config.substr(7);
-          } else if (config.substr(0, 8) == "composer") {
-            difficulty.composer = config.substr(10);
-          } else if (config.substr(0, 7) == "charter") {
-            difficulty.charter = config.substr(9);
-          } else if (config.substr(0, 4) == "skin") {
-            anchor = apkg::util::trim(config.substr(6));
-          } else if (config.substr(0, 4) == "side") {
-            std::string sstr = config.substr(6);
-            if (sstr == "light") {
-              difficulty.side = 0;
-            } else if (sstr == "conflict") {
-              difficulty.side = 1;
-            } else {
-              difficulty.side = 2;
-            }
-          } else if (config.substr(0, 13) == "chartConstant") {
-            char* e;
-            difficulty.chartConstant =
-                std::strtold(config.substr(15).c_str(), &e);
-
-            if (*e != '\0' or errno != 0) {
-              difficulty.chartConstant = -1;
-            }
-          } else if (config.substr(0, 7) == "baseBpm") {
-            difficulty.baseBPM = std::stoull(config.substr(9));
-          } else if (config.substr(0, 5) == "alias") {
-            difficulty.alias = config.substr(7);
-          } else if (config.substr(0, 11) == "illustrator") {
-            difficulty.illustrator = config.substr(13);
-          } else if (config.substr(0, 11) == "difficulty:") {
-            size_t it =
-                std::find_first_of(config.begin(), config.end(),
-                                   std::begin(numbers), std::end(numbers)) -
-                config.begin();
-            if (it != config.size() and it > 2) {
-              difficulty.difficulty =
-                  apkg::util::trim(config.substr(12, it - 12));
-            }
-            difficulty.displayedConstant = config.substr(it);
-          } else if (config.substr(0, 7) == "bpmText") {
-            difficulty.bpmText = config.substr(9);
-          } else if (config.substr(0, 10) == "searchTags") {
-            difficulty.searchTags = config.substr(12);
-          }
-        }
-
-        if (anchor != "") {
-          if (skinConfigs.find(anchor) == skinConfigs.end()) {
-            skinConfigs[anchor] = difficulty.side;
-          } else {
-            difficulty.side = skinConfigs[anchor];
-          }
-        }
-
-        if (difficulty.side == static_cast<uint8_t>(-1)) {
-          if (anchor == "") {
-            difficulty.side = 0;
-          } else {
-            difficulty.side = skinConfigs[anchor];
-          }
-        }
-
-        if (difficulty.chartConstant == -1) {
-          std::reverse(difficulty.displayedConstant.begin(),
-                       difficulty.displayedConstant.end());
-
-          size_t it =
-              std::find_first_of(difficulty.displayedConstant.begin(),
-                                 difficulty.displayedConstant.end(),
-                                 std::begin(numbers), std::end(numbers)) -
-              difficulty.displayedConstant.begin();
-
-          std::reverse(difficulty.displayedConstant.begin(),
-                       difficulty.displayedConstant.end());
-
-          try {
-            difficulty.chartConstant =
-                std::stoi(difficulty.displayedConstant.substr(
-                    0, difficulty.displayedConstant.size() - it));
-          } catch (const std::invalid_argument& e) {
-            difficulty.chartConstant = -1;
-          }
-
-          std::cout << difficulty.chartConstant;
-        }
-
-        difficulties.push_back(difficulty);
-      }
-    }
-  }
+  (void)apkg::project::parse(difficulties, packConfigs, charts);
+  charts.clear();
+  packConfigs.clear();
 
   // Cancer
-  for (apkg::chart& chart : charts) {
-    // std::cout << chart.identifier << "\n" << chart.pack;
-    sqlite3_exec(database,
-                 ("INSERT INTO main.charts ("
-                  "  identifier,"
-                  "  title,"
-                  "  composer,"
-                  "  charter,"
-                  "  chartConstant,"
-                  "  baseBPM,"
-                  "  side"
-                  ") VALUES ("
-                  "  \"" +
-                  chart.identifier + "\", \"\", \"\", \"\", 0, 1, 0) ")
-                     .c_str(),
-                 nullptr, nullptr, &errmsg);
+  std::string query;
+  for (apkg::chart& chart : difficulties) {
+    query =
+        "INSERT INTO main.charts ("
+        "  identifier,"
+        "  title,"
+        "  composer,"
+        "  charter,"
+        "  chartConstant,"
+        "  baseBPM,"
+        "  side"
+        ") VALUES ("
+        "  \"" +
+        chart.identifier + "\", \"" + chart.title + "\", \"" + chart.composer +
+        "\", \"" + chart.charter + "\", " +
+        std::to_string(static_cast<int>(chart.chartConstant * 100)) + ", " +
+        std::to_string(chart.baseBPM) + ", " + std::to_string(chart.side) +
+        " ) ";
+    sqlite3_exec(database, query.c_str(), nullptr, nullptr, &errmsg);
+    std::cout << query;
     if (errmsg) {
       std::cerr << errmsg;
       return 1;
