@@ -49,7 +49,8 @@ int main(int argc, const char** argv, const char** envp) {
     std::cout << errmsg;
     return 1;
   }
-
+#define testcase
+#ifdef testcase
   // Cancer
   if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
                         apkg::util::unext(std::string(argv[1])) +
@@ -58,6 +59,8 @@ int main(int argc, const char** argv, const char** envp) {
     std::cerr << "Unable to extract file.";
     return err;
   }
+
+#endif
 
   std::filesystem::path working =
       std::filesystem::current_path() / "tmp" /
@@ -92,6 +95,8 @@ int main(int argc, const char** argv, const char** envp) {
   std::vector<apkg::chart> difficulties;
 
   {
+    constexpr const char numbers[11] = "0123456789";
+
     apkg::chart difficulty("");
     // Loops over the charts
     for (size_t i = 0; i < packConfigs.size(); ++i) {
@@ -137,8 +142,16 @@ int main(int argc, const char** argv, const char** envp) {
             difficulty.alias = config.substr(7);
           } else if (config.substr(0, 11) == "illustrator") {
             difficulty.illustrator = config.substr(13);
-          } else if (config.substr(0, 10) == "difficulty") {
-            // TODO set difficulty and displayed const here
+          } else if (config.substr(0, 11) == "difficulty:") {
+            size_t it =
+                std::find_first_of(config.begin(), config.end(),
+                                   std::begin(numbers), std::end(numbers)) -
+                config.begin();
+            if (it != config.size() and it > 2) {
+              difficulty.difficulty =
+                  apkg::util::trim(config.substr(12, it - 12));
+            }
+            difficulty.displayedConstant = config.substr(it);
           } else if (config.substr(0, 7) == "bpmText") {
             difficulty.bpmText = config.substr(9);
           } else if (config.substr(0, 10) == "searchTags") {
@@ -151,6 +164,30 @@ int main(int argc, const char** argv, const char** envp) {
           if (difficulty.side == static_cast<uint8_t>(-1)) {
             difficulty.side = 0;
           }
+        }
+
+        if (difficulty.chartConstant == -1) {
+          std::reverse(difficulty.displayedConstant.begin(),
+                       difficulty.displayedConstant.end());
+
+          size_t it =
+              std::find_first_of(difficulty.displayedConstant.begin(),
+                                 difficulty.displayedConstant.end(),
+                                 std::begin(numbers), std::end(numbers)) -
+              difficulty.displayedConstant.begin();
+
+          std::reverse(difficulty.displayedConstant.begin(),
+                       difficulty.displayedConstant.end());
+
+          try {
+            difficulty.chartConstant =
+                std::stoi(difficulty.displayedConstant.substr(
+                    0, difficulty.displayedConstant.size() - it));
+          } catch (const std::invalid_argument& e) {
+            difficulty.chartConstant = -1;
+          }
+
+          std::cout << difficulty.chartConstant;
         }
 
         difficulties.push_back(difficulty);
@@ -180,16 +217,6 @@ int main(int argc, const char** argv, const char** envp) {
       return 1;
     }
   }
-
-#if 0
-
-  for (lines chart : pack) {
-    for (std::string config : chart) {
-      std::cout << config << "\n";
-    }
-  }
-
-#endif
 
   sqlite3_close_v2(database);
 
