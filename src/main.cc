@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "../include/chart.hh"
@@ -79,19 +80,6 @@ int main(int argc, const char** argv, const char** envp) {
   (void)apkg::project::lex(packConfigs, working, charts, directories,
                            settingsFile);
 
-  /*
-
-    (pack,
-      (chart,
-        (difficulty,
-          (configs of that difficulty,
-          ),
-        ),
-      ),
-    )
-
-  */
-
   std::vector<apkg::chart> difficulties;
 
   {
@@ -100,19 +88,22 @@ int main(int argc, const char** argv, const char** envp) {
     apkg::chart difficulty("");
     // Loops over the charts
     for (size_t i = 0; i < packConfigs.size(); ++i) {
-      uint8_t side = static_cast<uint8_t>(-1);
+      std::unordered_map<std::string, uint8_t> skinConfigs;
       // Loops over the difficulties
       for (size_t j = 0; j < packConfigs[0].size(); ++j) {
         difficulty = charts[i];  // Fetches identifier and copies it over.
+        std::string anchor = "";
 
         // Loops over the configs in that difficulty
-        for (std::string config : packConfigs[0][0]) {
+        for (std::string config : packConfigs[i][j]) {
           if (config.substr(0, 5) == "title") {
             difficulty.title = config.substr(7);
           } else if (config.substr(0, 8) == "composer") {
             difficulty.composer = config.substr(10);
           } else if (config.substr(0, 7) == "charter") {
             difficulty.charter = config.substr(9);
+          } else if (config.substr(0, 4) == "skin") {
+            anchor = apkg::util::trim(config.substr(6));
           } else if (config.substr(0, 4) == "side") {
             std::string sstr = config.substr(6);
             if (sstr == "light") {
@@ -122,13 +113,7 @@ int main(int argc, const char** argv, const char** envp) {
             } else {
               difficulty.side = 2;
             }
-
-            if (side == static_cast<uint8_t>(-1)) {
-              side = difficulty.side;
-            }
           } else if (config.substr(0, 13) == "chartConstant") {
-            // TODO Make it infer the chart constant from the displayed
-            // potential if possible
             char* e;
             difficulty.chartConstant =
                 std::strtold(config.substr(15).c_str(), &e);
@@ -159,10 +144,19 @@ int main(int argc, const char** argv, const char** envp) {
           }
         }
 
+        if (anchor != "") {
+          if (skinConfigs.find(anchor) == skinConfigs.end()) {
+            skinConfigs[anchor] = difficulty.side;
+          } else {
+            difficulty.side = skinConfigs[anchor];
+          }
+        }
+
         if (difficulty.side == static_cast<uint8_t>(-1)) {
-          difficulty.side = side;
-          if (difficulty.side == static_cast<uint8_t>(-1)) {
+          if (anchor == "") {
             difficulty.side = 0;
+          } else {
+            difficulty.side = skinConfigs[anchor];
           }
         }
 
