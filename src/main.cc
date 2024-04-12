@@ -12,6 +12,7 @@
 
 #include "../include/chart.hh"
 #include "../include/index.hh"
+#include "../include/project.hh"
 #include "../include/util.hh"
 
 int main(int argc, const char** argv, const char** envp) {
@@ -74,63 +75,7 @@ int main(int argc, const char** argv, const char** envp) {
   // Configs are grouped into difficulties (lines), then grouped into songs,
   // which are then grouped into packs.
   std::vector<std::vector<lines>> chartConfigs;
-
-  {
-    std::ifstream projectSettings;
-    std::string buffer;
-    std::string projectYaml;
-    lines configLines;
-
-    size_t idx;
-
-    for (size_t i = 0; i < charts.size(); ++i) {
-      configLines = {};
-      projectYaml = "";
-
-      projectSettings.open(working / directories[i] / settingsFile[i]);
-      while (std::getline(projectSettings, buffer))
-        projectYaml += buffer + "\n";
-      projectSettings.close();
-
-      uint8_t x = 1;
-      while (++x) {
-        idx = projectYaml.find("\n-");
-        if (idx == std::string::npos) {
-          configLines.push_back(projectYaml);
-          break;
-        } else {
-          configLines.push_back(projectYaml.substr(0, idx));
-          projectYaml = std::move(projectYaml.substr(idx + 2));
-        }
-      }
-    }
-
-#if 0 
-    std::vector<lines> configs{};
-    std::ifstream projectSettings;
-    std::string buffer;
-    lines configLines;
-    std::stringstream bufferStream;
-    for (size_t i = 0; i < charts.size(); ++i) {
-      projectSettings.open(working / directories[i] / settingsFile[i]);
-
-      while (std::getline(projectSettings, buffer, '-')) {
-        configLines = {};
-        bufferStream = std::stringstream(buffer);
-        while (std::getline(bufferStream, buffer, '\n')) {
-          util::rtrim(buffer);
-          configLines.push_back(buffer);
-        }
-        configs.push_back(configLines);
-      }
-
-      configs.erase(configs.begin());
-      chartConfigs.push_back(configs);
-
-      projectSettings.close();
-    }
-#endif
-  }
+  (void)project::lex(chartConfigs, working, charts, directories, settingsFile);
 
   // Cancer
   for (apkg::chart& chart : charts) {
