@@ -72,15 +72,95 @@ int main(int argc, const char** argv, const char** envp) {
 
   (void)index::parse(pack, charts, directories, settingsFile);
 
-  // Configs are grouped into difficulties (lines), then grouped into songs,
-  // which are then grouped into packs.
-  std::vector<std::vector<lines>> chartConfigs;
-  (void)apkg::project::lex(chartConfigs, working, charts, directories,
+  std::vector<std::vector<lines>> packConfigs;
+  (void)apkg::project::lex(packConfigs, working, charts, directories,
                            settingsFile);
+
+  /*
+
+    (pack,
+      (chart,
+        (difficulty,
+          (configs of that difficulty,
+          ),
+        ),
+      ),
+    )
+
+  */
+
+  std::vector<apkg::chart> difficulties;
+
+  {
+    apkg::chart difficulty("");
+    // Loops over the charts
+    for (size_t i = 0; i < packConfigs.size(); ++i) {
+      uint8_t side = static_cast<uint8_t>(-1);
+      // Loops over the difficulties
+      for (size_t j = 0; j < packConfigs[0].size(); ++j) {
+        difficulty = charts[i];  // Fetches identifier and copies it over.
+
+        // Loops over the configs in that difficulty
+        for (std::string config : packConfigs[0][0]) {
+          if (config.substr(0, 5) == "title") {
+            difficulty.title = config.substr(7);
+          } else if (config.substr(0, 8) == "composer") {
+            difficulty.composer = config.substr(10);
+          } else if (config.substr(0, 7) == "charter") {
+            difficulty.charter = config.substr(9);
+          } else if (config.substr(0, 4) == "side") {
+            std::string sstr = config.substr(6);
+            if (sstr == "light") {
+              difficulty.side = 0;
+            } else if (sstr == "conflict") {
+              difficulty.side = 1;
+            } else {
+              difficulty.side = 2;
+            }
+
+            if (side == static_cast<uint8_t>(-1)) {
+              side = difficulty.side;
+            }
+          } else if (config.substr(0, 13) == "chartConstant") {
+            // TODO Make it infer the chart constant from the displayed
+            // potential if possible
+            char* e;
+            difficulty.chartConstant =
+                std::strtold(config.substr(15).c_str(), &e);
+
+            if (*e != '\0' or errno != 0) {
+              difficulty.chartConstant = -1;
+            }
+          } else if (config.substr(0, 7) == "baseBpm") {
+            difficulty.baseBPM = std::stoull(config.substr(9));
+          } else if (config.substr(0, 5) == "alias") {
+            difficulty.alias = config.substr(7);
+          } else if (config.substr(0, 11) == "illustrator") {
+            difficulty.illustrator = config.substr(13);
+          } else if (config.substr(0, 10) == "difficulty") {
+            // TODO set difficulty and displayed const here
+          } else if (config.substr(0, 7) == "bpmText") {
+            difficulty.bpmText = config.substr(9);
+          } else if (config.substr(0, 10) == "searchTags") {
+            difficulty.searchTags = config.substr(12);
+          }
+        }
+
+        if (difficulty.side == static_cast<uint8_t>(-1)) {
+          difficulty.side = side;
+          if (difficulty.side == static_cast<uint8_t>(-1)) {
+            difficulty.side = 0;
+          }
+        }
+
+        difficulties.push_back(difficulty);
+      }
+    }
+  }
 
   // Cancer
   for (apkg::chart& chart : charts) {
-    std::cout << chart.identifier << "\n" << chart.pack;
+    // std::cout << chart.identifier << "\n" << chart.pack;
     sqlite3_exec(database,
                  ("INSERT INTO main.charts ("
                   "  identifier,"

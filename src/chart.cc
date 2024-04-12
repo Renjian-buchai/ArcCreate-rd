@@ -4,8 +4,8 @@
 #include <string>
 
 apkg::chart::chart(std::string _identifier, std::string _title,
-                   std::string _composer, std::string _charter, bool _side,
-                   long double _chartConstant, long long _baseBPM,
+                   std::string _composer, std::string _charter, uint8_t _side,
+                   long double _chartConstant, unsigned long long _baseBPM,
                    std::string _alias, std::string _illustrator,
                    std::string _difficulty, std::string _displayedConstant,
                    std::string _bpmText, std::string _searchTags,
