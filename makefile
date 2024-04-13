@@ -1,6 +1,6 @@
 CC=g++ 
 # CC=clang++
-CCFLAGS=-Wall -Wextra -Wold-style-cast -Werror -fexec-charset=utf-8
+CCFLAGS=-Wall -Wextra -Wold-style-cast -Werror -fexec-charset=utf-8 
 # -Weffc++
 INC=
 LIN=-lsqlite3
@@ -21,7 +21,7 @@ prod: $(src)
 
 com: $(src)
 	rm -f $(exe)
-	$(CC) $(CCFLAGS) -o$(exe) $(src) $(INC) $(LIN) $(DEF) $(STD)
+	$(CC) $(CCFLAGS) -o$(exe) $(src) $(INC) $(LIN) $(DEF) $(STD) -O0
 
 dbgc: $(src) 
 	rm -f $(exe)

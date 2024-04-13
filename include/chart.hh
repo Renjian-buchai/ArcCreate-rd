@@ -2,11 +2,15 @@
 #define APKG_RD_CHART
 
 #include <cstdint>
+#include <regex>
 #include <string>
 
 namespace apkg {
 
 struct chart {
+ private:
+  std::string _sanitise(std::string& unSafe);
+
  public:
   chart() = delete;
   chart(std::string identifier, std::string title = "",
@@ -40,6 +44,12 @@ struct chart {
   std::string pack;  // Done by index parsing
 
   // Does not exist
+
+  // Member functions
+
+  void sanitise();
+
+  std::string querify();
 };
 
 }  // namespace apkg

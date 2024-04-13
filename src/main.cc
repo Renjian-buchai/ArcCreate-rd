@@ -50,69 +50,64 @@ int main(int argc, const char** argv, const char** envp) {
     std::cout << errmsg;
     return 1;
   }
+
+  std::vector<std::string> package;
+  for (int i = 1; i < argc; ++i) {
+    package.push_back(argv[i]);
+  }
+
+  for (std::string apkg : package) {
 #define testcase
 #ifdef testcase
-  // Cancer
-  if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
-                        apkg::util::unext(std::string(argv[1])) +
-                        " -y -bb0 > tmp/del.txt")
-                           .c_str())) {
-    std::cerr << "Unable to extract file.";
-    return err;
-  }
+    // Cancer
+    if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
+                          apkg::util::unext(std::string(argv[1])) +
+                          " -y -bb0 > tmp/del.txt")
+                             .c_str())) {
+      std::cerr << "Unable to extract file.";
+      return err;
+    }
 
 #endif
 
-  std::filesystem::path working =
-      std::filesystem::current_path() / "tmp" /
-      std::filesystem::path(apkg::util::unext(std::string(argv[1])));
+    std::filesystem::path working =
+        std::filesystem::current_path() / "tmp" /
+        std::filesystem::path(apkg::util::unext(std::string(argv[1])));
 
-  std::vector<lines> pack;
-  (void)index::read(working, pack);
+    std::vector<lines> pack;
+    (void)index::read(working, pack);
 
-  std::vector<apkg::chart> charts{};
-  std::vector<std::string> directories{};
-  std::vector<std::string> settingsFile{};
+    std::vector<apkg::chart> charts{};
+    std::vector<std::string> directories{};
+    std::vector<std::string> settingsFile{};
 
-  (void)index::parse(pack, charts, directories, settingsFile);
-  pack.clear();
+    (void)index::parse(pack, charts, directories, settingsFile);
+    pack.clear();
 
-  std::vector<std::vector<lines>> packConfigs;
-  (void)apkg::project::lex(packConfigs, working, charts, directories,
-                           settingsFile);
-  settingsFile.clear();
-  directories.clear();
-  working.clear();
+    std::vector<std::vector<lines>> packConfigs;
+    (void)apkg::project::lex(packConfigs, working, charts, directories,
+                             settingsFile);
+    settingsFile.clear();
+    directories.clear();
+    working.clear();
 
-  std::vector<apkg::chart> difficulties;
-  (void)apkg::project::parse(difficulties, packConfigs, charts);
-  charts.clear();
-  packConfigs.clear();
+    std::vector<apkg::chart> difficulties;
+    (void)apkg::project::parse(difficulties, packConfigs, charts);
+    charts.clear();
+    packConfigs.clear();
 
-  // Cancer
-  std::string query;
-  for (apkg::chart& chart : difficulties) {
-    query =
-        "INSERT INTO main.charts ("
-        "  identifier,"
-        "  title,"
-        "  composer,"
-        "  charter,"
-        "  chartConstant,"
-        "  baseBPM,"
-        "  side"
-        ") VALUES ("
-        "  \"" +
-        chart.identifier + "\", \"" + chart.title + "\", \"" + chart.composer +
-        "\", \"" + chart.charter + "\", " +
-        std::to_string(static_cast<int>(chart.chartConstant * 100)) + ", " +
-        std::to_string(chart.baseBPM) + ", " + std::to_string(chart.side) +
-        " ) ";
-    sqlite3_exec(database, query.c_str(), nullptr, nullptr, &errmsg);
-    std::cout << query;
-    if (errmsg) {
-      std::cerr << errmsg;
-      return 1;
+    // Cancer
+    std::string query;
+    for (apkg::chart& chart : difficulties) {
+      chart.sanitise();
+
+      query = chart.querify();
+      sqlite3_exec(database, query.c_str(), nullptr, nullptr, &errmsg);
+      // std::cout << query;
+      if (errmsg) {
+        std::cerr << errmsg;
+        return 1;
+      }
     }
   }
 
