@@ -50,64 +50,57 @@ int main(int argc, const char** argv, const char** envp) {
     std::cout << errmsg;
     return 1;
   }
+  // Cancer
 
-  std::vector<std::string> package;
-  for (int i = 1; i < argc; ++i) {
-    package.push_back(argv[i]);
+  if (!std::filesystem::exists("./tmp"))
+    std::filesystem::create_directory("./tmp");
+
+  std::string cmd = "7z x \"" + std::string(argv[1]) + "\" -o\"tmp/" +
+                    apkg::util::unext(std::string(argv[1])) +
+                    "\" -y -bb0 > tmp/del.txt";
+  // std::cout << cmd;
+  if (int err = system(cmd.c_str())) {
+    std::cerr << "Unable to extract file.";
+    return err;
   }
 
-  for (std::string apkg : package) {
-#define testcase
-#ifdef testcase
-    // Cancer
-    if (int err = system(("7z x " + std::string(argv[1]) + " -otmp/" +
-                          apkg::util::unext(std::string(argv[1])) +
-                          " -y -bb0 > tmp/del.txt")
-                             .c_str())) {
-      std::cerr << "Unable to extract file.";
-      return err;
-    }
+  std::filesystem::path working =
+      std::filesystem::current_path() / "tmp" /
+      std::filesystem::path(apkg::util::unext(std::string(argv[1])));
 
-#endif
+  std::vector<lines> pack;
+  (void)index::read(working, pack);
 
-    std::filesystem::path working =
-        std::filesystem::current_path() / "tmp" /
-        std::filesystem::path(apkg::util::unext(std::string(argv[1])));
+  std::vector<apkg::chart> charts{};
+  std::vector<std::string> directories{};
+  std::vector<std::string> settingsFile{};
 
-    std::vector<lines> pack;
-    (void)index::read(working, pack);
+  (void)index::parse(pack, charts, directories, settingsFile);
+  pack.clear();
 
-    std::vector<apkg::chart> charts{};
-    std::vector<std::string> directories{};
-    std::vector<std::string> settingsFile{};
+  std::vector<std::vector<lines>> packConfigs;
+  (void)apkg::project::lex(packConfigs, working, charts, directories,
+                           settingsFile);
+  settingsFile.clear();
+  directories.clear();
+  working.clear();
 
-    (void)index::parse(pack, charts, directories, settingsFile);
-    pack.clear();
+  std::vector<apkg::chart> difficulties;
+  (void)apkg::project::parse(difficulties, packConfigs, charts);
+  charts.clear();
+  packConfigs.clear();
 
-    std::vector<std::vector<lines>> packConfigs;
-    (void)apkg::project::lex(packConfigs, working, charts, directories,
-                             settingsFile);
-    settingsFile.clear();
-    directories.clear();
-    working.clear();
+  // Cancer
+  std::string query;
+  for (apkg::chart& chart : difficulties) {
+    chart.sanitise();
 
-    std::vector<apkg::chart> difficulties;
-    (void)apkg::project::parse(difficulties, packConfigs, charts);
-    charts.clear();
-    packConfigs.clear();
-
-    // Cancer
-    std::string query;
-    for (apkg::chart& chart : difficulties) {
-      chart.sanitise();
-
-      query = chart.querify();
-      sqlite3_exec(database, query.c_str(), nullptr, nullptr, &errmsg);
-      // std::cout << query;
-      if (errmsg) {
-        std::cerr << errmsg;
-        return 1;
-      }
+    query = chart.querify();
+    sqlite3_exec(database, query.c_str(), nullptr, nullptr, &errmsg);
+    // std::cout << query;
+    if (errmsg) {
+      std::cerr << errmsg;
+      return 1;
     }
   }
 
