@@ -16,47 +16,11 @@
 #include "../include/project.hh"
 #include "../include/util.hh"
 
-int main(int argc, const char** argv, const char** envp) {
-  (void)argc, (void)argv, (void)envp;
-
+int log(const std::filesystem::path& dir, sqlite3* const database) {
   char* errmsg = nullptr;
 
-  sqlite3* database = nullptr;
-  if (int err = sqlite3_open("C:/docs/archive.db", &database)) {
-    return err;
-  }
-
-  sqlite3_exec(database,
-               "CREATE TABLE IF NOT EXISTS main.charts (\n"
-               "id INTEGER PRIMARY KEY,\n"
-               "  identifier TEXT NOT NULL,\n"
-               "  title TEXT NOT NULL,\n"
-               "  composer TEXT NOT NULL,\n"
-               "  charter TEXT NOT NULL,\n"
-               "  alias TEXT ,\n"
-               "  illustrator TEXT ,\n"
-               "  chartConstant INTEGER NOT NULL,\n"
-               "  difficulty TEXT ,\n"
-               "  displayedConstant TEXT ,\n"
-               "  baseBPM INTEGER NOT NULL,\n"
-               "  bpmText TEXT ,\n"
-               "  side INTEGER NOT NULL,\n"
-               "  searchTags TEXT ,"
-               "  pack TEXT \n"
-               ");",
-               nullptr, nullptr, &errmsg);
-
-  if (errmsg) {
-    std::cout << errmsg;
-    return 1;
-  }
-  // Cancer
-
-  if (!std::filesystem::exists("./tmp"))
-    std::filesystem::create_directory("./tmp");
-
-  std::string cmd = "7z x \"" + std::string(argv[1]) + "\" -o\"tmp/" +
-                    apkg::util::unext(std::string(argv[1])) +
+  std::string cmd = "7z x \"" + dir.string() + "\" -o\"tmp/" +
+                    apkg::util::unext(dir.string()) +
                     "\" -y -bb0 > tmp/del.txt";
   // std::cout << cmd;
   if (int err = system(cmd.c_str())) {
@@ -66,7 +30,7 @@ int main(int argc, const char** argv, const char** envp) {
 
   std::filesystem::path working =
       std::filesystem::current_path() / "tmp" /
-      std::filesystem::path(apkg::util::unext(std::string(argv[1])));
+      std::filesystem::path(apkg::util::unext(dir.string()));
 
   std::vector<lines> pack;
   (void)index::read(working, pack);
@@ -102,6 +66,73 @@ int main(int argc, const char** argv, const char** envp) {
       std::cerr << errmsg;
       return 1;
     }
+  }
+  return 0;
+}
+
+int main(int argc, const char** argv, const char** envp) {
+  (void)argc, (void)argv, (void)envp;
+
+  char* errmsg = nullptr;
+
+  sqlite3* database = nullptr;
+  if (int err = sqlite3_open("C:/docs/archive.db", &database)) {
+    return err;
+  }
+
+  sqlite3_exec(database,
+               "CREATE TABLE IF NOT EXISTS main.charts (\n"
+               "id INTEGER PRIMARY KEY,\n"
+               "  identifier TEXT NOT NULL,\n"
+               "  title TEXT NOT NULL,\n"
+               "  composer TEXT NOT NULL,\n"
+               "  charter TEXT NOT NULL,\n"
+               "  alias TEXT ,\n"
+               "  illustrator TEXT ,\n"
+               "  chartConstant INTEGER NOT NULL,\n"
+               "  difficulty TEXT ,\n"
+               "  displayedConstant TEXT ,\n"
+               "  baseBPM INTEGER NOT NULL,\n"
+               "  bpmText TEXT ,\n"
+               "  side INTEGER NOT NULL,\n"
+               "  searchTags TEXT ,"
+               "  pack TEXT \n"
+               ");",
+               nullptr, nullptr, &errmsg);
+
+  if (errmsg) {
+    std::cout << errmsg;
+    return 1;
+  }
+
+  if (!std::filesystem::exists("./tmp"))
+    std::filesystem::create_directory("./tmp");
+
+  bool directory = 0;
+
+  for (int i = 1; i < argc; ++i) {
+    if (std::string(argv[i]) == "-dir") {
+      directory = 1;
+    }
+  }
+  if (directory) {
+    for (const std::filesystem::directory_entry& entry :
+         std::filesystem::directory_iterator(".")) {
+      if (std::filesystem::is_directory(entry)) {
+        continue;
+      }
+
+      if (log("./" + entry.path().filename().string(), database)) {
+        std::cerr << "Terminating...\n";
+        break;
+      }
+    }
+    std::cout << "Completed\n";
+  } else {
+    if (log(argv[1], database)) {
+      std::cerr << "Terminating...\n";
+    }
+    std::cout << "Completed\n";
   }
 
   sqlite3_close_v2(database);
