@@ -89,7 +89,7 @@ int main(int argc, const char** argv, const char** envp) {
                "  charter TEXT NOT NULL,\n"
                "  alias TEXT ,\n"
                "  illustrator TEXT ,\n"
-               "  chartConstant INTEGER NOT NULL,\n"
+               "  chartConstant INTEGER,\n"
                "  difficulty TEXT ,\n"
                "  displayedConstant TEXT ,\n"
                "  baseBPM INTEGER NOT NULL,\n"

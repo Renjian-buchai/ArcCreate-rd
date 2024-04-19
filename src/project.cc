@@ -66,6 +66,9 @@ int apkg::project::lex(std::vector<std::vector<lines>>& chartConfigs,
   return 0;
 }
 
+#if 0 
+
+// Dead until I can figure out how to fix it
 static int inferConstant(apkg::chart& difficulty, const char (&numbers)[11]) {
   std::reverse(difficulty.displayedConstant.begin(),
                difficulty.displayedConstant.end());
@@ -80,12 +83,17 @@ static int inferConstant(apkg::chart& difficulty, const char (&numbers)[11]) {
 
   try {
     difficulty.chartConstant = std::stoi(difficulty.displayedConstant.substr(
-        0, difficulty.displayedConstant.size() - it));
+        0, difficulty.displayedConstant.size() - it - 1));
+    if (difficulty.displayedConstant.back() == '+') {
+      difficulty.chartConstant += 0.7f;
+    }
   } catch (const std::invalid_argument& e) {
     difficulty.chartConstant = -1;
   }
   return 0;
 }
+
+#endif
 
 // I literally don't know how to make this function smaller
 // Maybe just get better at programming
@@ -170,9 +178,9 @@ int apkg::project::parse(std::vector<apkg::chart>& difficulties,
         }
       }
 
-      if (difficulty.chartConstant == -1) {
-        (void)inferConstant(difficulty, numbers);
-      }
+      // if (difficulty.chartConstant == -1) {
+      //   (void)inferConstant(difficulty, numbers);
+      // }
 
       difficulties.push_back(difficulty);
     }
