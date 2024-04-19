@@ -34,7 +34,7 @@ charts:
   difficulty: <string (Difficulty level, usually [Past | Present | Future | Beyond]) + displayed Chart Constant>
   chartConstant: <float (Actual chart constant, usually to 1 decimal place)>
   difficultyColor: <string (Colour of the background in the difficulty displayed, in RGBA format)>
-  skin: 
+  skin: <string Anchor>
     side: <string (Chart side, usually [light | conflict])> 
     particles: <string (Particle name)>
     track: <string (Floor name)>
@@ -47,11 +47,39 @@ charts:
 
 ## Database (SQL)
 
-| index int PK | identifier text | title text | composer text | charter text | alias text | illustrator text | chartConstant real | difficulty\* text | displayedConstant\*\* text | baseBPM int | bpmText text | side text^ | searchTags text |
-| ------------ | --------------- | ---------- | ------------- | ------------ | ---------- | ---------------- | ------------------ | ----------------- | -------------------------- | ----------- | ------------ | --------- | --------------- |
-
-\* Difficulty: Only includes the difficulty level, not the displayed chart constant (i.e. Past, Present, Future, Beyond, Eternal)
-
-\*\* displayedConstant: Only includes the displayed chart constant (i.e. 1-12, 7+, 8+, 9+, 10+)
-
-^ side: "light" or "conflict" only. Does not include the actual skin.
+- Columns
+  - index
+    - Integer, primary key
+  - identifier
+    - Text, not null
+  - title
+    - Text, not null
+  - composer
+    - Text, not null
+  - charter
+    - Text, not null
+  - side
+    - Integer, not null
+    - 0 (Light) is inputted if unspecified.
+  - base BPM
+    - Integer, not null
+  - chartConstant
+    - Integer
+    - -100 is inputted if unspecified. In a failed attempt to minimise rounding errors, chart constants are scaled by 100.
+  - alias
+    - Text
+  - illustrator
+    - Text
+  - difficulty
+    - Text
+    - This refers to Past, Present, Future, Beyond or whatever is included, to be displayed to the user.
+  - displayedConstant
+    - Text
+    - This refers to the chart constant displayed to the user. This is important as it may vary from the actual chart constant of the chart (e.g., Dropdead FTR's chart constant should be a 9, but it's shown as a 8.)
+  - bpm text
+    - Text
+    - This refers to the BPM displayed to the user. It usually only differs from baseBPM when the actual BPM is a range.
+  - search tags
+    - Text
+  - pack
+    - This depends on the pack listed in the .arcpkg.
