@@ -66,7 +66,7 @@ int apkg::project::lex(std::vector<std::vector<lines>>& chartConfigs,
   return 0;
 }
 
-#if 0 
+#if 0
 
 // Dead until I can figure out how to fix it
 static int inferConstant(apkg::chart& difficulty, const char (&numbers)[11]) {
